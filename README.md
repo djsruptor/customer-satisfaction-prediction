@@ -1,31 +1,38 @@
 # Santander Customer Satisfaction Prediction
-This project was built using [Santander Customer Satisfaction 2016 Kaggle competition](https://kaggle.com/competitions/santander-customer-satisfaction) with the objective of identifying customers who are more likely to be upset with the bank's service. 
+This project was built using the dataset from the [Santander Customer Satisfaction 2016 Kaggle competition](https://kaggle.com/competitions/santander-customer-satisfaction) to identify customers who are more likely to be dissatisfied with the bank's service before they reach a customer satisfaction query or raise a complaint. 
 
 
-## 1. Business Problem Description
-From frontline support teams to C-suites, customer satisfaction is a key measure of success. Unhappy customers don't stick around. What's more, unhappy customers rarely voice their dissatisfaction before leaving.
+## 1. Business Problem 
 
-Santander Bank is asking for help to identify dissatisfied customers early in their relationship. Doing so would allow Santander to take proactive steps to improve a customer's happiness before it's too late.
+### Problem Description
+>From frontline support teams to C-suites, customer satisfaction is a key measure of success. Unhappy customers don't stick around. What's more, unhappy customers rarely voice their dissatisfaction before leaving.
+>
+>Santander Bank is asking for help to identify dissatisfied customers early in their relationship. Doing so would allow Santander to take proactive steps to improve a customer's happiness before it's too late.
 
-A dataset with over 76k clients and 360 anonymized features is provided.
+- *Santander Customer Satisfaction, Kaggle*
 
-Each record represents a single customer and 369 numeric features. The target variable (`TARGET`) is binary:
+### Dataset
+
+The dataset contains over 76.000 clients and 369 anonymized numerical features.
+
+Each row represents a single customer. The target variable (`TARGET`) is binary:
 `0` = Satisfied
 `1` = Dissatisfied
 
+Source: [OpenML dataset 46859](https://www.openml.org/d/46859) / Kaggle Santander Customer Satisfaction competition.
 
 ## 2. Data Preparation and EDA
+The `download_data.py` script retrieves the dataset using `openml` API and saves it as a raw parquet file. 
 
-The `download_data.py` script retrieves the dataset using `openml` API and save it as a parquet file. 
-
-EDA and pre-processing steps (see `notebook.ipynb`):
-- Confirmed no missing values -> No imputation required
-- All columns are numerical -> no categorical encoding required
+**EDA and pre-processing steps**(see `notebook.ipynb`)**:**
 - Identified highly correlated pairs and reduced features (369 -> 203) to improve efficiency
 - Target imbalanced (`0`: 96%, `1`: 4%) visualized with bar chart
 - Data was split into train/val/test (60/20/20) using `sklearn.model_selection.train_test_split`
 
-## Model Selection, Training, and Tuning
+<img width="555" height="443" alt="Screenshot 2026-10-06 at 10 50 36 PM" src="https://github.com/user-attachments/assets/3dfde1fb-2c21-4471-b648-3b1ecfa566cf" />
+
+## 3. Modelling 
+**Selection, Training, and Tuning**
 
 Model selection and tuning are documented in `notebook.ipynb`, with final training logic in `train.py`. 
 
@@ -35,16 +42,16 @@ Models evaluated:
 - `RandomForestClassifier`
 - `XGBClassifier`
 
-5-fold cross-validation was implemented using `GridSearchCV` and `RandomizedSearchCV` for parameter optimization.
-Results were stored and compared using a consolidated performance table.
+Hyperparameter tuning was tested using `GridSearchCV` and `RandomizedSearchCV`, final results were stored and compared using a consolidated performance table.
 
-> While ROC-AUC provides a global ranking metric, PR-AUC better reflects the model's ability to identify dissatisfied customers — a priority for marketing and customer success teams who act on these predictions. For this reason, both metrics were taken into account when evaluating models performance.
+|model                 |val_roc  |test_roc |val_pr   |test_pr  |roc_var  |pr_var    |rank   |
+|----------------------|---------|---------|---------|---------|---------|----------|-------|
+|**XGBClassifier**     |**0.834**|**0.845**|**0.195**|**0.193**|**0.011**|**-0.002**|**1.0**|
+|RandomForestClassifier|0.521    |0.830    |0.043    |0.192    |0.309    |0.149     |2.0    |
+|DecisionTreeClassifier|0.812    |0.826    |0.155    |0.156    |0.014    |0.001     |3.0    |
+|LogisticRegressionCV  |0.793    |0.803    |0.136    |0.146    |0.010    |0.010     |4.0    |
 
-**Best performing model was XGBoost:**
-- ROC-AUC: 0.848
-- PR-AUC: 0.194
-
-## Performance Validation
+## 4. Performance Validation
 
 Additional validation confirmed model stability and fairness:
 - Re-trained on full_train(train+validation) and evaluated on remaining 20%
@@ -53,24 +60,23 @@ Additional validation confirmed model stability and fairness:
 - Plotted ROC, PR, Precision, Recall and F1 curves
 - Verified no single feature contributed over 40% of total importance
 
-> In this context, optimizing the F1-based threshold and prioritizing a higher TPR is essential. Retaining dissatisfied customers has a disproportionately positive business impact, so accepting a moderate increase in false positives (retaining already-satisfied customers) is a reasonable trade-off for capturing more truly dissatisfied ones.
+<img width="758" height="251" alt="Screenshot 2026-10-06 at 11 01 36 PM" src="https://github.com/user-attachments/assets/c4560ab1-f113-494e-ae4d-338ca4ac5c40" />
 
-## Model Deployment
+Using a default 0.5 threshold would miss too many dissatisfied customers. Therefore, I evaluated precision, recall and F1 across different thresholds to find the optimal threshold value: **0.136**
 
+
+## 5. Deployment
 A trained model is served through FastAPI via (`predict.py`).
 
 There are two endpoints:
-
 - `GET/` - Returns a JSON sample of feature values for a given index
 - `POST/predict` - Returns satisfaction prediction based on customer number (user input) and threshold
 
-## Reproducibility
-
+**Reproducibility**
 - Dataset source: [OpenML 46859](https://www.openml.org/d/46859)
 - Size: ~76k rows x 369 features
 
 To reproduce:
-
 ```bash
 # 1. Environment setup
 pip install uv
@@ -93,6 +99,16 @@ uv run uvicorn predict:app --reload
 docker build -t santander-service .
 docker run -p 9696:9696 santander-service
 ``` 
+
+## 6. What I learned
+The main lesson from this project was that model selection is just as important as evaluation design and parameter tuning.
+
+If I extended the project, I would spend more time on:
+- calibration
+- cost-based thresholding
+- SHAP or other explainability methods
+- drift monitoring
+- a clearer operational definition of what action follows a positive prediction
 
 ## Citation
 @misc{santander-customer-satisfaction,
