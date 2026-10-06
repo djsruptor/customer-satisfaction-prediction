@@ -1,26 +1,20 @@
-# Santander Customer Satisfaction Prediction - XGBoost + FastAPI
+# Santander Customer Satisfaction Prediction
+This project was built using [Santander Customer Satisfaction 2016 Kaggle competition](https://kaggle.com/competitions/santander-customer-satisfaction) with the objective of identifying customers who are more likely to be upset with the bank's service. 
 
-## Problem Description
 
-This project predicts customer satisfaction for Santander Bank customers using hundreds of anonymized features. The dataset is part of the Kaggle 2016 Santander Customer Satisfaction competition.
+## 1. Business Problem Description
+From frontline support teams to C-suites, customer satisfaction is a key measure of success. Unhappy customers don't stick around. What's more, unhappy customers rarely voice their dissatisfaction before leaving.
+
+Santander Bank is asking for help to identify dissatisfied customers early in their relationship. Doing so would allow Santander to take proactive steps to improve a customer's happiness before it's too late.
+
+A dataset with over 76k clients and 360 anonymized features is provided.
 
 Each record represents a single customer and 369 numeric features. The target variable (`TARGET`) is binary:
-
 `0` = Satisfied
 `1` = Dissatisfied
 
-The goal is to build a model that identifies which customers are dissatisfied, enabling Santander to reduce churn, improve customer experience, and optimize retention campaigns. Even small improvements in recall for the minority (dissatisfied) class can translate into significant cost savings and higher lifetime value.
 
-This repository implements the full **CRISP-DM** workflow:
-
-- Business understanding
-- Data exploratory analysis to detect missing values, data distribution, and correlations
-- Model selection, training, and tuning using different approaches
-- Performance validation using AUC metrics
-- Deployment through FastAPI service by exposing a `\predict` endpoint for real-time inference
-- Reproducible and containerized workflow using `uv` for environment management and Docker for portability
-
-## Data Preparation and EDA
+## 2. Data Preparation and EDA
 
 The `download_data.py` script retrieves the dataset using `openml` API and save it as a parquet file. 
 
