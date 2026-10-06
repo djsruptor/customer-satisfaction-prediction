@@ -1,5 +1,5 @@
 # Santander Customer Satisfaction Prediction
-This project was built using the dataset from the [Santander Customer Satisfaction 2016 Kaggle competition](https://kaggle.com/competitions/santander-customer-satisfaction) to identify customers who are more likely to be dissatisfied with the bank's service before they reach a customer satisfaction query or raise a complaint. 
+This project was built using the dataset from the [Santander Customer Satisfaction 2016 Kaggle competition](https://kaggle.com/competitions/santander-customer-satisfaction) to identify customers who are more likely to be dissatisfied with the bank's service before they raise a complaint or leave.
 
 
 ## 1. Business Problem 
@@ -16,18 +16,18 @@ This project was built using the dataset from the [Santander Customer Satisfacti
 The dataset contains over 76.000 clients and 369 anonymized numerical features.
 
 Each row represents a single customer. The target variable (`TARGET`) is binary:
-`0` = Satisfied
-`1` = Dissatisfied
+- `0` = Satisfied
+- `1` = Dissatisfied
 
 Source: [OpenML dataset 46859](https://www.openml.org/d/46859) / Kaggle Santander Customer Satisfaction competition.
 
 ## 2. Data Preparation and EDA
-The `download_data.py` script retrieves the dataset using `openml` API and saves it as a raw parquet file. 
+The `download_data.py` script retrieves the dataset using `OpenML` API and saves it as a raw Parquet file. 
 
 **EDA and pre-processing steps**(see `notebook.ipynb`)**:**
-- Identified highly correlated pairs and reduced features (369 -> 203) to improve efficiency
-- Target imbalanced (`0`: 96%, `1`: 4%) visualized with bar chart
-- Data was split into train/val/test (60/20/20) using `sklearn.model_selection.train_test_split`
+- Removed highly correlated features, retaining one feature from each correlated pair arbitrarily because the variables are anonymized.
+- The target is highly imbalanced: 96% satisfied and 4% dissatisfied.
+- Data was split into train/validation/test (60/20/20) using `sklearn.model_selection.train_test_split`
 
 <img width="555" height="443" alt="Screenshot 2026-10-06 at 10 50 36 PM" src="https://github.com/user-attachments/assets/3dfde1fb-2c21-4471-b648-3b1ecfa566cf" />
 
@@ -42,7 +42,7 @@ Models evaluated:
 - `RandomForestClassifier`
 - `XGBClassifier`
 
-Hyperparameter tuning was tested using `GridSearchCV` and `RandomizedSearchCV`, final results were stored and compared using a consolidated performance table.
+Performed hyperparameter tuning using `GridSearchCV` and `RandomizedSearchCV`, final results were stored and compared in a consolidated performance table.
 
 |model                 |val_roc  |test_roc |val_pr   |test_pr  |roc_var  |pr_var    |rank   |
 |----------------------|---------|---------|---------|---------|---------|----------|-------|
@@ -53,28 +53,25 @@ Hyperparameter tuning was tested using `GridSearchCV` and `RandomizedSearchCV`, 
 
 ## 4. Performance Validation
 
-Additional validation confirmed model stability and fairness:
-- Re-trained on full_train(train+validation) and evaluated on remaining 20%
+Additional validation confirmed model stability:
+- Re-trained on full_train(train + validation) and evaluated on remaining 20%
 - Computed confusion matrix and classification report
-- Determined optimal F1 threshold for better TPR: **0.136**
 - Plotted ROC, PR, Precision, Recall and F1 curves
 - Verified no single feature contributed over 40% of total importance
 
 <img width="758" height="251" alt="Screenshot 2026-10-06 at 11 01 36 PM" src="https://github.com/user-attachments/assets/c4560ab1-f113-494e-ae4d-338ca4ac5c40" />
 
-Using a default 0.5 threshold would miss too many dissatisfied customers. Therefore, I evaluated precision, recall and F1 across different thresholds to find the optimal threshold value: **0.136**
+Using a default 0.5 threshold would miss too many dissatisfied customers. Therefore, I set the threshold at 0.136 by maximizing F1 on the validation set, which also increased recall of dissatisfied customers.
 
 
 ## 5. Deployment
 A trained model is served through FastAPI via (`predict.py`).
 
 There are two endpoints:
-- `GET/` - Returns a JSON sample of feature values for a given index
-- `POST/predict` - Returns satisfaction prediction based on customer number (user input) and threshold
+- `GET /` - Returns a JSON sample of feature values for a given index
+- `POST /predict` - Returns satisfaction prediction based on a customer number inserted by the user input
 
 **Reproducibility**
-- Dataset source: [OpenML 46859](https://www.openml.org/d/46859)
-- Size: ~76k rows x 369 features
 
 To reproduce:
 ```bash
@@ -101,7 +98,7 @@ docker run -p 9696:9696 santander-service
 ``` 
 
 ## 6. What I learned
-The main lesson from this project was that model selection is just as important as evaluation design and parameter tuning.
+The main lesson from this project was that EDA should shape the modeling strategy, not just describe the dataset. In this case, the 4% positive class made class imbalance the defining constraint of the problem, so evaluation design and threshold selection mattered as much as model choice.
 
 If I extended the project, I would spend more time on:
 - calibration
